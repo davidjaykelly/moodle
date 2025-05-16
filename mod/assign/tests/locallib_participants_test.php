@@ -175,4 +175,55 @@ final class locallib_participants_test extends \advanced_testcase {
 
         $this->setUser($previoususer);
     }
+
+    /**
+     * Ensure site-suspended users with submissions are listed when "include suspended" is enabled.
+     */
+    public function test_list_participants_includes_site_suspended_users_with_submissions(): void {
+        global $DB;
+
+        $this->resetAfterTest(true);
+
+        // Create course, teacher, and assignment.
+        $course = self::getDataGenerator()->create_course();
+        $teacher = self::getDataGenerator()->create_and_enrol($course, 'teacher');
+        $student = self::getDataGenerator()->create_and_enrol($course, 'student');
+        $assign = $this->create_instance($course);
+
+        // Add a submission and submit for grading.
+        $this->add_submission($student, $assign);
+        $this->submit_for_grading($student, $assign);
+
+        // Confirm the submission exists.
+        $submission = $DB->get_record('assign_submission', [
+            'assignment' => $assign->get_instance()->id,
+            'userid' => $student->id
+        ]);
+        $this->assertNotEmpty($submission, 'Submission should exist before suspension');
+
+        // Suspend the user site-wide.
+        $DB->set_field('user', 'suspended', 1, ['id' => $student->id]);
+
+        // Re-instantiate assign class, but force "include suspended" to true.
+        $assign = new testable_assign_with_includesuspended(
+            $assign->get_context(),
+            $assign->get_course_module(),
+            $assign->get_course()
+        );
+
+        // Get participants.
+        $participants = $assign->list_participants(0, false);
+
+        // Assert that the suspended user is included.
+        $this->assertArrayHasKey($student->id, $participants, 'Suspended user with submission should be listed');
+    }
+}
+
+/**
+ * Testable assign class that always includes suspended users.
+ */
+class testable_assign_with_includesuspended extends \assign {
+    public function show_only_active_users(): bool {
+        return false; // Simulates "Include suspended users" checkbox checked
+    }
 }

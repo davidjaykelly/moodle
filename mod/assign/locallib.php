@@ -2359,6 +2359,24 @@ class assign {
 
             $users = $DB->get_records_sql($sql, $params);
 
+            // Append site-suspended users with submissions if 'Include suspended participants' is enabled.
+            if (!$this->show_only_active_users()) {
+                $suspendedusers = $DB->get_records_sql("
+                    SELECT u.*
+                    FROM {user} u
+                    JOIN {assign_submission} s ON s.userid = u.id
+                    WHERE s.assignment = :assignid
+                    AND u.suspended = 1
+                    AND u.deleted = 0
+                ", ['assignid' => $instance->id]);
+
+                foreach ($suspendedusers as $suser) {
+                    if (!array_key_exists($suser->id, $users)) {
+                        $users[$suser->id] = $suser;
+                    }
+                }
+            }
+
             $cm = $this->get_course_module();
             $info = new \core_availability\info_module($cm);
             $users = $info->filter_user_list($users);

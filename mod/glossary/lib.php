@@ -3501,9 +3501,7 @@ function glossary_get_entries_by_letter($glossary, $context, $letter, $from, $li
     }
 
     // Now sort the array in regard to the current language.
-    usort($filteredentries, function($a, $b) {
-        return format_string($a->concept) <=> format_string($b->concept);
-    });
+    core_collator::asort_objects_by_property($filteredentries, 'concept', core_collator::SORT_STRING);
 
     // Size of the overall array.
     $count = count($entries);
@@ -3989,9 +3987,7 @@ function glossary_get_entries_by_term($glossary, $context, $term, $from, $limit,
     // Check whether concept or alias match the term.
 
     // Now sort the array in regard to the current language.
-    usort($filteredentries, function($a, $b) {
-        return format_string($a->concept) <=> format_string($b->concept);
-    });
+    core_collator::asort_objects_by_property($filteredentries, 'concept', core_collator::SORT_STRING);
 
     // Size of the overall array.
     $count = count($entries);
@@ -4062,7 +4058,6 @@ function glossary_get_entries_to_approve($glossary, $context, $letter, $order, $
         $filteredentries = $entries;
     }
 
-    // Now sort the array in regard to the current language.
     if ($order == 'CREATION') {
         if (strcasecmp($sort, 'DESC') === 0) {
             usort($filteredentries, function($a, $b) {
@@ -4084,15 +4079,10 @@ function glossary_get_entries_to_approve($glossary, $context, $letter, $order, $
             });
         }
     } else {
-        // This means CONCEPT.
+        // Now sort the array in regard to the current language (This means CONCEPT).
+        core_collator::asort_objects_by_property($filteredentries, 'concept', core_collator::SORT_STRING);
         if (strcasecmp($sort, 'DESC') === 0) {
-            usort($filteredentries, function($a, $b) {
-                return format_string($b->concept) <=> format_string($a->concept);
-            });
-        } else {
-            usort($filteredentries, function($a, $b) {
-                return format_string($a->concept) <=> format_string($b->concept);
-            });
+            $filteredentries = array_reverse($filteredentries);
         }
     }
 

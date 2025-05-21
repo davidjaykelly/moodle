@@ -3500,10 +3500,21 @@ function glossary_get_entries_by_letter($glossary, $context, $letter, $from, $li
         $filteredentries = $entries;
     }
 
-    // Now sort the array in regard to the current language.
-    usort($filteredentries, function($a, $b) {
-        return format_string($a->concept) <=> format_string($b->concept);
-    });
+    // Now sort the array in regard to the current language, with fallback if Collator is unavailable.
+    if (class_exists('Collator')) {
+        // Use Moodle's current_language() if available, otherwise default to 'en'.
+        $lang = function_exists('current_language') ? current_language() : 'en';
+        $collator = new Collator($lang);
+
+        usort($filteredentries, function($a, $b) use ($collator) {
+            return $collator->compare(format_string($a->concept), format_string($b->concept));
+        });
+    } else {
+        // Fallback: case-insensitive but not locale-aware.
+        usort($filteredentries, function($a, $b) {
+            return strcasecmp(format_string($a->concept), format_string($b->concept));
+        });
+    }
 
     // Size of the overall array.
     $count = count($entries);
@@ -3988,10 +3999,21 @@ function glossary_get_entries_by_term($glossary, $context, $term, $from, $limit,
     $entries = $filteredentries;
     // Check whether concept or alias match the term.
 
-    // Now sort the array in regard to the current language.
-    usort($filteredentries, function($a, $b) {
-        return format_string($a->concept) <=> format_string($b->concept);
-    });
+    // Now sort the array in regard to the current language, with fallback if Collator is unavailable.
+    if (class_exists('Collator')) {
+        // Use Moodle's current_language() if available, otherwise default to 'en'.
+        $lang = function_exists('current_language') ? current_language() : 'en';
+        $collator = new Collator($lang);
+
+        usort($filteredentries, function($a, $b) use ($collator) {
+            return $collator->compare(format_string($a->concept), format_string($b->concept));
+        });
+    } else {
+        // Fallback: case-insensitive but not locale-aware.
+        usort($filteredentries, function($a, $b) {
+            return strcasecmp(format_string($a->concept), format_string($b->concept));
+        });
+    }
 
     // Size of the overall array.
     $count = count($entries);
@@ -4062,7 +4084,7 @@ function glossary_get_entries_to_approve($glossary, $context, $letter, $order, $
         $filteredentries = $entries;
     }
 
-    // Now sort the array in regard to the current language.
+    // Now sort the array in regard to the current language, with fallback if Collator is unavailable.
     if ($order == 'CREATION') {
         if (strcasecmp($sort, 'DESC') === 0) {
             usort($filteredentries, function($a, $b) {
@@ -4085,16 +4107,34 @@ function glossary_get_entries_to_approve($glossary, $context, $letter, $order, $
         }
     } else {
         // This means CONCEPT.
-        if (strcasecmp($sort, 'DESC') === 0) {
-            usort($filteredentries, function($a, $b) {
-                return format_string($b->concept) <=> format_string($a->concept);
-            });
+        if (class_exists('Collator')) {
+            $lang = function_exists('current_language') ? current_language() : 'en';
+            $collator = new Collator($lang);
+
+            if (strcasecmp($sort, 'DESC') === 0) {
+                usort($filteredentries, function($a, $b) use ($collator) {
+                    // Note the arguments are reversed for DESC
+                    return $collator->compare(format_string($b->concept), format_string($a->concept));
+                });
+            } else {
+                usort($filteredentries, function($a, $b) use ($collator) {
+                    return $collator->compare(format_string($a->concept), format_string($b->concept));
+                });
+            }
         } else {
-            usort($filteredentries, function($a, $b) {
-                return format_string($a->concept) <=> format_string($b->concept);
-            });
+            // Fallback: case-insensitive but not locale-aware.
+            if (strcasecmp($sort, 'DESC') === 0) {
+                usort($filteredentries, function($a, $b) {
+                    return strcasecmp(format_string($b->concept), format_string($a->concept));
+                });
+            } else {
+                usort($filteredentries, function($a, $b) {
+                    return strcasecmp(format_string($a->concept), format_string($b->concept));
+                });
+            }
         }
     }
+
 
     // Now applying limit.
     if (isset($limit)) {

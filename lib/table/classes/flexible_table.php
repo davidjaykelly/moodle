@@ -1189,20 +1189,11 @@ class flexible_table {
      * This function is not part of the public api.
      */
     public function finish_html() {
-        global $OUTPUT, $PAGE;
+        global $OUTPUT;
 
         if (!$this->started_output) {
-            // No data has been added to the table.
             $this->print_nothing_to_display();
         } else {
-            // Print empty rows to fill the table to the current pagesize.
-            // This is done so the header aria-controls attributes do not point to
-            // non-existent elements.
-            $emptyrow = array_fill(0, count($this->columns), '');
-            while ($this->currentrow < $this->pagesize) {
-                $this->print_row($emptyrow, 'emptyrow');
-            }
-
             echo html_writer::end_tag('tbody');
             echo html_writer::end_tag('table');
             if ($this->responsive) {
@@ -1210,7 +1201,6 @@ class flexible_table {
             }
             $this->wrap_html_finish();
 
-            // Paging bar.
             if (in_array(TABLE_P_BOTTOM, $this->showdownloadbuttonsat)) {
                 echo $this->download_buttons();
             }
@@ -1221,7 +1211,6 @@ class flexible_table {
                 echo $OUTPUT->render($pagingbar);
             }
 
-            // Render the dynamic table footer.
             echo $this->get_dynamic_table_html_end();
         }
     }
@@ -1235,11 +1224,14 @@ class flexible_table {
      */
     protected function show_hide_link($column, $index) {
         global $OUTPUT;
-        // Some headers contain <br /> tags, do not include in title, hence the
-        // strip tags.
+
+        $rowsOnThisPage = min(
+            $this->pagesize, 
+            max(0, $this->totalrows - ($this->currpage * $this->pagesize))
+        );
 
         $ariacontrols = '';
-        for ($i = 0; $i < $this->pagesize; $i++) {
+        for ($i = 0; $i < $rowsOnThisPage; $i++) {
             $ariacontrols .= $this->uniqueid . '_r' . $i . '_c' . $index . ' ';
         }
 

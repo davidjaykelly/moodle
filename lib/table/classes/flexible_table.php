@@ -1237,6 +1237,9 @@ class flexible_table {
 
         $ariacontrols = trim($ariacontrols);
 
+        // Some headers contain <br /> tags, do not include in title, hence the
+        // strip tags.
+
         if (!empty($this->prefs['collapse'][$column])) {
             $linkattributes = [
                 'title' => get_string('show') . ' ' . strip_tags($this->headers[$index]),
